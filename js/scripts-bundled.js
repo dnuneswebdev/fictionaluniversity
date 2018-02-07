@@ -10340,6 +10340,8 @@ var _HeroSlider = _interopRequireDefault(__webpack_require__(4));
 
 var _GoogleMap = _interopRequireDefault(__webpack_require__(5));
 
+var _Search = _interopRequireDefault(__webpack_require__(6));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // 3rd party packages from NPM
@@ -10348,6 +10350,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var googleMap = new _GoogleMap.default();
 var mobileMenu = new _MobileMenu.default();
 var heroSlider = new _HeroSlider.default();
+var search = new _Search.default();
 
 /***/ }),
 /* 2 */
@@ -13580,6 +13583,145 @@ function () {
 }();
 
 var _default = GMap;
+exports.default = _default;
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _jquery = _interopRequireDefault(__webpack_require__(0));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Search =
+/*#__PURE__*/
+function () {
+  //1. DESCRIBE OUR OBJECT, SELECTORS, ETC...
+  function Search() {
+    _classCallCheck(this, Search);
+
+    this.addSearchHtml(); // TEM QUE CHAMAR EM PRIMEIRO PARA OS OUTROS EXISTIREM!!
+
+    this.openButton = (0, _jquery.default)('.js-search-trigger');
+    this.closeButton = (0, _jquery.default)('.search-overlay__close');
+    this.searchOverlay = (0, _jquery.default)('.search-overlay');
+    this.searchField = (0, _jquery.default)("#search-term");
+    this.typingTimer;
+    this.resultsDiv = (0, _jquery.default)('#search-overlay__results'); //SELECT AN EMPTY DIV TO DISPLAY CONTENT FROM DB
+
+    this.isSpinnerVisible = false;
+    this.previousValue; //Keep tracks of the previous search value
+
+    this.events(); //CHAMA OS EVENTOS LOGO QUE A PAGINA É CARREGADA (TIPO ngOnInit do Angular)
+  } //2. EVENTS, CONNECT THE OBJECTS WITH THE METHODS
+
+
+  _createClass(Search, [{
+    key: "events",
+    value: function events() {
+      this.openButton.on('click', this.openOverlay.bind(this));
+      this.closeButton.on('click', this.closeOverlay.bind(this));
+      this.searchField.on('keyup', this.typingLogic.bind(this));
+      (0, _jquery.default)(document).on("keyup", this.keyPressDispatcher.bind(this));
+    } //3. METHODS (function, action...)
+
+  }, {
+    key: "openOverlay",
+    value: function openOverlay() {
+      var _this = this;
+
+      this.searchOverlay.addClass('search-overlay--active'); //ADCIONA A CLASSE QUE ABRE O MODAL
+
+      (0, _jquery.default)("body").addClass('body-no-scroll'); //REMOVE O SCROLL DA PAGINA //OVERFLOW HIDDEN
+
+      this.searchField.val('');
+      setTimeout(function () {
+        return _this.searchField.focus();
+      }, 400);
+    }
+  }, {
+    key: "closeOverlay",
+    value: function closeOverlay() {
+      this.searchOverlay.removeClass('search-overlay--active');
+      (0, _jquery.default)("body").removeClass('body-no-scroll');
+    }
+  }, {
+    key: "keyPressDispatcher",
+    value: function keyPressDispatcher(e) {
+      if (e.keyCode == 27) {
+        this.closeOverlay();
+      }
+    }
+  }, {
+    key: "typingLogic",
+    value: function typingLogic() {
+      if (this.searchField.val() != this.previousValue) {
+        clearTimeout(this.typingTimer); //reseta o tempo antes de tudo, BOAS PRATICAS!!!
+
+        if (this.searchField.val()) {
+          if (!this.isSpinnerVisible) {
+            // Não faz com que a animaçãi fique ativando a cada tecla
+            this.resultsDiv.html('<div class="spinner-loader"></div>');
+            this.isSpinnerVisible = true;
+          }
+
+          this.typingTimer = setTimeout(this.getResults.bind(this), 800);
+        } else {
+          this.resultsDiv.html('');
+          this.isSpinnerVisible = false;
+        }
+      }
+
+      this.previousValue = this.searchField.val();
+    }
+  }, {
+    key: "getResults",
+    value: function getResults() {
+      var _this2 = this;
+
+      //                //PEGA OQUE O USER DIGITOU E PROCURA
+      _jquery.default.getJSON(universityData.root_url + '/wp-json/university/v1/search?term=' + this.searchField.val(), function (results) {
+        _this2.resultsDiv.html("\n        <div class=\"row\">\n\n          <div class=\"one-third\">\n            <h2 class=\"search-overlay__section-title\">General Information</h2>\n            ".concat(results.generalInfo.length ? '<ul class="link-list min-list">' : '<p>No Matches....</p>', "\n            ").concat(results.generalInfo.map(function (item) {
+          return "<li><a href=\"".concat(item.permalink, "\">").concat(item.title, "</a> \n            ").concat(item.postType == 'post' ? "by ".concat(item.authorName) : '', "</li>");
+        }).join(''), "\n            ").concat(results.generalInfo.length ? '</ul>' : '', " \n          </div>\n\n          <div class=\"one-third\">\n            <h2 class=\"search-overlay__section-title\">Programs</h2>\n            ").concat(results.programs.length ? '<ul class="link-list min-list">' : "<p>No Programs match that search.<a href=\"".concat(universityData.root_url, "/programs\">View all programs</a></p>"), "\n            ").concat(results.programs.map(function (item) {
+          return "<li><a href=\"".concat(item.permalink, "\">").concat(item.title, "</a></li>");
+        }).join(''), "\n            ").concat(results.programs.length ? '</ul>' : '', " \n\n            <h2 class=\"search-overlay__section-title\">Professors</h2>\n            ").concat(results.professors.length ? '<ul class="professor-cards">' : "<p>No professors found...<a href=\"".concat(universityData.root_url, "/professors\">View all professors</a></p>"), "\n            ").concat(results.professors.map(function (item) {
+          return "\n            <li class=\"professor-card__list-item\">\n            <a class=\"professor-card\" href=\"".concat(item.permalink, "\">\n              <img class=\"professor-card__image\" src=\"").concat(item.image, "\" alt=\"professor photo\">\n              <span class=\"professor-card__name\">").concat(item.title, "</span>\n            </a>\n            </li>\n            ");
+        }).join(''), "\n            ").concat(results.professors.length ? '</ul>' : '', " \n\n          </div>\n\n          <div class=\"one-third\">\n            <h2 class=\"search-overlay__section-title\">Campuses</h2>\n            ").concat(results.campuses.length ? '<ul class="link-list min-list">' : "<p>No Campuses match the search...<a href=\"".concat(universityData.root_url, "/campuses\">View all campuses</a></p>"), "\n            ").concat(results.campuses.map(function (item) {
+          return "<li><a href=\"".concat(item.permalink, "\">").concat(item.title, "</a></li>");
+        }).join(''), "\n            ").concat(results.campuses.length ? '</ul>' : '', " \n\n            <h2 class=\"search-overlay__section-title\">Events</h2>\n            ").concat(results.events.length ? '' : "<p>No Events found...<a href=\"".concat(universityData.root_url, "/events\">View all events</a></p>"), "\n            ").concat(results.events.map(function (item) {
+          return "\n            <div class=\"event-summary\">\n            <a class=\"event-summary__date t-center\" href=\"<".concat(item.permalink, "\">\n              <span class=\"event-summary__month\">").concat(item.month, "</span>\n              <span class=\"event-summary__day\">").concat(item.day, "</span>\n            </a>\n            <div class=\"event-summary__content\">\n              <h5 class=\"event-summary__title headline headline--tiny\">\n                <a href=\"").concat(item.permalink, "\">").concat(item.title, "</a>\n              </h5>\n              <p>").concat(item.description, "<a href=\"").concat(item.permalink, "\" class=\"nu gray\">Learn more</a></p>\n            </div>\n          </div>\n            ");
+        }).join(''), "\n          </div>\n\n        </div>\n\n      "));
+
+        _this2.isSpinnerVisible = false;
+      });
+    }
+  }, {
+    key: "addSearchHtml",
+    value: function addSearchHtml() {
+      //.append adiciona html no fim do html
+      (0, _jquery.default)('body').append("\n      <div class=\"search-overlay\">\n        <div class=\"search-overlay__top\">\n          <div class=\"container\">\n          <i class=\"fa fa-search search-overlay__icon\" aria-hidden=\"true\"></i>\n          <input type=\"text\" class=\"search-term\" placeholder=\"What are you looking for\" id=\"search-term\">\n          <i class=\"fa fa-window-close search-overlay__close\" aria-hidden=\"true\"></i>\n          </div>\n        </div>\n\n        <div class=\"container\">\n          <div id=\"search-overlay__results\">\n            \n          </div>\n        </div>\n      </div>\n    ");
+    }
+  }]);
+
+  return Search;
+}();
+
+var _default = Search;
 exports.default = _default;
 
 /***/ })
