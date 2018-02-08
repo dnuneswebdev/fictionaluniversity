@@ -10342,6 +10342,8 @@ var _GoogleMap = _interopRequireDefault(__webpack_require__(5));
 
 var _Search = _interopRequireDefault(__webpack_require__(6));
 
+var _MyNotes = _interopRequireDefault(__webpack_require__(7));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // 3rd party packages from NPM
@@ -10351,6 +10353,7 @@ var googleMap = new _GoogleMap.default();
 var mobileMenu = new _MobileMenu.default();
 var heroSlider = new _HeroSlider.default();
 var search = new _Search.default();
+var myNotes = new _MyNotes.default();
 
 /***/ }),
 /* 2 */
@@ -13652,6 +13655,7 @@ function () {
       setTimeout(function () {
         return _this.searchField.focus();
       }, 400);
+      return false;
     }
   }, {
     key: "closeOverlay",
@@ -13722,6 +13726,152 @@ function () {
 }();
 
 var _default = Search;
+exports.default = _default;
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _jquery = _interopRequireDefault(__webpack_require__(0));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var MyNotes =
+/*#__PURE__*/
+function () {
+  //SELECTORS
+  function MyNotes() {
+    _classCallCheck(this, MyNotes);
+
+    this.events();
+  } //EVENTS
+
+
+  _createClass(MyNotes, [{
+    key: "events",
+    value: function events() {
+      (0, _jquery.default)(".delete-note").on('click', this.deleteNote.bind(this));
+      (0, _jquery.default)(".edit-note").on('click', this.editNote.bind(this));
+      (0, _jquery.default)(".update-note").on('click', this.updateNote.bind(this));
+    } //METHODS
+
+  }, {
+    key: "deleteNote",
+    value: function deleteNote(e) {
+      //MANDA UMA REQUISIÇÃO AJAX DE DELETE PARA A REST API DO WP
+      var thisNote = (0, _jquery.default)(e.target).parents("li"); //VARIABLE TO SELECT THE DATA-ID IN THE HTML
+
+      _jquery.default.ajax({
+        beforeSend: function beforeSend(xhr) {
+          xhr.setRequestHeader('X-WP-Nonce', universityData.nonce);
+        },
+        url: universityData.root_url + '/wp-json/wp/v2/note/' + thisNote.data('id'),
+        type: 'DELETE',
+        success: function success(response) {
+          thisNote.slideUp(); //REMOVE ALGUM ITEM NA PAGINA COM UMA ANIMAÇÃO
+
+          console.log('Congrats');
+          console.log(response);
+        },
+        error: function error(response) {
+          console.log('Sorry');
+          console.log(response);
+        }
+      });
+    }
+  }, {
+    key: "updateNote",
+    value: function updateNote(e) {
+      var _this = this;
+
+      //MANDA UMA REQUISIÇÃO AJAX DE UPDATE PARA A REST API DO WP
+      var thisNote = (0, _jquery.default)(e.target).parents("li"); //VARIABLE TO SELECT THE DATA-ID IN THE HTML
+
+      var ourUpdatedPost = {
+        'title': thisNote.find(".note-title-field").val(),
+        'content': thisNote.find(".note-vody-field").val()
+      };
+
+      _jquery.default.ajax({
+        beforeSend: function beforeSend(xhr) {
+          xhr.setRequestHeader('X-WP-Nonce', universityData.nonce);
+        },
+        url: universityData.root_url + '/wp-json/wp/v2/note/' + thisNote.data('id'),
+        type: 'POST',
+        data: ourUpdatedPost,
+        success: function success(response) {
+          _this.makeNoteReadOnly(thisNote); //CHAMA A FUNÇÂO READONLY
+
+
+          console.log('Congrats');
+          console.log(response);
+        },
+        error: function error(response) {
+          console.log('Sorry');
+          console.log(response);
+        }
+      });
+    }
+  }, {
+    key: "editNote",
+    value: function editNote(e) {
+      var thisNote = (0, _jquery.default)(e.target).parents("li");
+
+      if (thisNote.data("state") == 'editable') {
+        this.makeNoteReadOnly(thisNote); //REFERENCIAR A VARIAVEL CRIADA PARA AS OUTRAS FUNÇOES PODEREM ACESSA-LA
+      } else {
+        this.makeNoteEditable(thisNote);
+      }
+    }
+  }, {
+    key: "makeNoteEditable",
+    value: function makeNoteEditable(thisNote) {
+      //VARIAVEL thisNote CRIADA EM OUTRA FUNÇÂO
+      thisNote.find(".edit-note") //seleciona o botao de EDIT
+      .html('<i class="fa fa-times" aria-hidden="true"></i> Cancel'); //TROCA O BOTAO EDIT POR UM CANCEL
+
+      thisNote.find(".note-title-field, .note-body-field") //seleciona os inputs e torna editavel
+      .removeAttr("readonly") //remove o readonly dos inputs
+      .addClass("note-active-field");
+      thisNote.find(".update-note") //
+      .addClass("update-note--visible"); //faz aparecer o botao de save
+
+      thisNote.data("state", "editable");
+    }
+  }, {
+    key: "makeNoteReadOnly",
+    value: function makeNoteReadOnly(thisNote) {
+      thisNote.find(".edit-note") //seleciona o botao de EDIT
+      .html('<i class="fa fa-pencil" aria-hidden="true"></i> Edit'); //TROCA O BOTAO DE VOLTA PARA EDIT
+
+      thisNote.find(".note-title-field, .note-body-field") //seleciona os inputs
+      .attr("readonly", "readonly") //adciona o readonly dos inputs
+      .removeClass("note-active-field");
+      thisNote.find(".update-note") //
+      .removeClass("update-note--visible"); //remove o botao de save
+
+      thisNote.data("state", "cancel");
+    }
+  }]);
+
+  return MyNotes;
+}();
+
+var _default = MyNotes;
 exports.default = _default;
 
 /***/ })

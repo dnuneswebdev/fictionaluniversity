@@ -32,6 +32,7 @@ class Search {
     $("body").addClass('body-no-scroll'); //REMOVE O SCROLL DA PAGINA //OVERFLOW HIDDEN
     this.searchField.val('');
     setTimeout(() => this.searchField.focus(), 400);
+    return false;
   }
 
   closeOverlay() {

@@ -58,8 +58,7 @@ function university_files() { //STYLES, SCRIPTS, FONTS
   wp_enqueue_style('university_main_styles', get_stylesheet_uri());
   wp_localize_script('main-university-js', 'universityData', array( //MAKES URL FLEXIBLE
     'root_url' => get_site_url(),
-    '' => '',
-    '' => ''
+    'nonce' => wp_create_nonce('wp_rest')
   ));
 }
 
@@ -105,6 +104,51 @@ function university_adjust_queries($query) {      // $query->is_main_query() BOA
 }
 
 add_action('pre_get_posts', 'university_adjust_queries');
+
+//REDIRECT SUBSCRIBERS TO THE FRONT PAGE
+function redirectSubsToFrontEnd() {
+  $ourCurrentUser = wp_get_current_user();
+  
+  if(count($ourCurrentUser->roles) == 1 AND $ourCurrentUser->roles[0] == 'subscriber') {
+    wp_redirect(site_url('/'));
+    exit; //FALA PRO WP PARAR DE RODAR DEPOIS QUE ELE REDIRECIONA O USER
+  }
+};
+
+add_action('admin_init', 'redirectSubsToFrontEnd');
+
+//TIRA O ADMIN BAR DOS USUARIOS
+function noSubsAdminBar() {
+  $ourCurrentUser = wp_get_current_user();
+  
+  if(count($ourCurrentUser->roles) == 1 AND $ourCurrentUser->roles[0] == 'subscriber') {
+    show_admin_bar(false);
+  }
+};
+
+add_action('wp_loaded', 'noSubsAdminBar');
+
+//CUSTOM LOGIN BRAND LINK
+function ourHeaderUrl() {
+  return esc_url(site_url('/'));
+}
+
+add_filter('login_headerurl', 'ourHeaderUrl');
+
+//CUSTOMIZE LOGIN PAGE CSS STYLE... INSPECIONA UM ELEMENTO NA PAGINA PRA DESCOBRIR A CLASSE EM USO
+function  ourLoginCss() {
+  wp_enqueue_style('university_main_styles', get_stylesheet_uri());
+  wp_enqueue_style('custom-google-fonts', '//fonts.googleapis.com/css?family=Roboto+Condensed:300,300i,400,400i,700,700i|Roboto:100,300,400,400i,700,700i');
+}
+
+add_action('login_enqueue_scripts', 'ourLoginCss');
+
+//TROCA O NOME QUANDO PASSA O MOUSE EM CIMA DO TITULO NA PAGINA DE LOGIN
+function ourLoginHeaderTitle() {
+  return get_bloginfo('name');
+}
+
+add_filter('login_headertitle', 'ourLoginHeaderTitle');
 
 //GOOGLEMAPS API
 function university_map_key($api) {
