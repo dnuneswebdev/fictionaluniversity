@@ -10344,6 +10344,8 @@ var _Search = _interopRequireDefault(__webpack_require__(6));
 
 var _MyNotes = _interopRequireDefault(__webpack_require__(7));
 
+var _Like = _interopRequireDefault(__webpack_require__(8));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // 3rd party packages from NPM
@@ -10354,6 +10356,7 @@ var mobileMenu = new _MobileMenu.default();
 var heroSlider = new _HeroSlider.default();
 var search = new _Search.default();
 var myNotes = new _MyNotes.default();
+var like = new _Like.default();
 
 /***/ }),
 /* 2 */
@@ -13764,9 +13767,11 @@ function () {
   _createClass(MyNotes, [{
     key: "events",
     value: function events() {
-      (0, _jquery.default)(".delete-note").on('click', this.deleteNote.bind(this));
-      (0, _jquery.default)(".edit-note").on('click', this.editNote.bind(this));
-      (0, _jquery.default)(".update-note").on('click', this.updateNote.bind(this));
+      //TEM QUE POR O MY NOTES PRIMEIRO PARA O JS SABER QUE O NOTE FOI CRIADO E CONSEGUIR EDITAR, EXCLUIR SALVAR.
+      (0, _jquery.default)("#my-notes").on('click', '.delete-note', this.deleteNote.bind(this));
+      (0, _jquery.default)("#my-notes").on('click', '.edit-note', this.editNote.bind(this));
+      (0, _jquery.default)("#my-notes").on('click', '.update-note', this.updateNote.bind(this));
+      (0, _jquery.default)(".submit-note").on('click', this.createNote.bind(this));
     } //METHODS
 
   }, {
@@ -13786,10 +13791,15 @@ function () {
 
           console.log('Congrats');
           console.log(response);
-        },
-        error: function error(response) {
-          console.log('Sorry');
-          console.log(response);
+
+          if (response.userNoteCount < 5) {
+            (0, _jquery.default)('.note-limit-message').removeClass('active');
+          }
+
+          error: (function (response) {
+            console.log('Sorry');
+            console.log(response);
+          });
         }
       });
     }
@@ -13821,6 +13831,45 @@ function () {
           console.log(response);
         },
         error: function error(response) {
+          console.log('Sorry');
+          console.log(response);
+        }
+      });
+    }
+  }, {
+    key: "createNote",
+    value: function createNote(e) {
+      //MANDA UMA REQUISIÇÃO AJAX DE CREATE PARA A REST API DO WP
+      var ourNewPost = {
+        'title': (0, _jquery.default)(".new-note-title").val(),
+        'content': (0, _jquery.default)(".new-note-body").val(),
+        'status': 'publish' //EXIBE COMO PUBLICADO NA PAGINA <FAZ APARECER>, PRA DEIXAR PRIVADO, MELHOR PRATICA É IR LA NO FUNCTIONS E CRIAR UM ADD_FILTER
+
+      };
+
+      _jquery.default.ajax({
+        beforeSend: function beforeSend(xhr) {
+          xhr.setRequestHeader('X-WP-Nonce', universityData.nonce);
+        },
+        url: universityData.root_url + '/wp-json/wp/v2/note/',
+        type: 'POST',
+        data: ourNewPost,
+        success: function success(response) {
+          (0, _jquery.default)(".new-note-title, .new-note-body").val(""); //SELECIONA E AO CRIAR NOTE DEIXA EM BRANCO
+
+          (0, _jquery.default)("\n        <li data-id=\"".concat(response.id, "\" <!-- ACHA O ID PRA USAR NO JAVASCRIPT CRUD-->\n          <input readonly class=\"note-title-field\" value=\"").concat(response.title.raw, "\">\n        <span class=\"edit-note\">\n          <i class=\"fa fa-pencil\" aria-hidden=\"true\"></i> Edit\n        </span>\n        <span class=\"delete-note\">\n          <i class=\"fa fa-trash-o\" aria-hidden=\"true\"></i> Delete\n        </span>\n        <textarea readonly class=\"note-body-field\" rows=\"5\">").concat(response.content.raw, "</textarea>\n        <span class=\"update-note btn btn--blue btn--small\">\n          <i class=\"fa fa-arrow-right\" aria-hidden=\"true\"></i> Save\n        </span>\n        </li>\n        ")) //CRIA UMA LI
+          .prependTo("#my-notes") //LINKA COM A UL #MY-NOTES
+          .hide() // ESCONDE PARA ANIMAÇÂO
+          .slideDown(); // ANIMAÇÂO
+
+          console.log('Congrats');
+          console.log(response);
+        },
+        error: function error(response) {
+          if (response.responseText == "You have reached your note limit") {
+            (0, _jquery.default)('.note-limit-message').addClass('active');
+          }
+
           console.log('Sorry');
           console.log(response);
         }
@@ -13872,6 +13921,117 @@ function () {
 }();
 
 var _default = MyNotes;
+exports.default = _default;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _jquery = _interopRequireDefault(__webpack_require__(0));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Like =
+/*#__PURE__*/
+function () {
+  //
+  function Like() {
+    _classCallCheck(this, Like);
+
+    this.events();
+  } //
+
+
+  _createClass(Like, [{
+    key: "events",
+    value: function events() {
+      (0, _jquery.default)('.like-box').on('click', this.ourClickDispatcher.bind(this));
+    } //methods
+
+  }, {
+    key: "ourClickDispatcher",
+    value: function ourClickDispatcher(e) {
+      var currentLikeBox = (0, _jquery.default)(e.target).closest('.like-box'); // ACHA O PARENT MAIS PROXIMO QUE ESTA A CLASSE LIKE-BOX, TARGET DE WHOLE BOX NOT ONLY DE HEARTH, CLICKABLE
+
+      if (currentLikeBox.attr('data-exists') == 'yes') {
+        this.deleteLike(currentLikeBox);
+      } else {
+        this.createLike(currentLikeBox);
+      }
+    }
+  }, {
+    key: "createLike",
+    value: function createLike(currentLikeBox) {
+      _jquery.default.ajax({
+        beforeSend: function beforeSend(xhr) {
+          xhr.setRequestHeader('X-WP-Nonce', universityData.nonce);
+        },
+        url: universityData.root_url + '/wp-json/university/v1/manageLike',
+        type: 'POST',
+        //QUAL O VERBO QUE VOCE QUER? GET, POST, ETC...
+        data: {
+          'professorId': currentLikeBox.data('professor') //ISSO VAI PRO FINAL DA URL 'manageLike?professorId: '
+
+        },
+        success: function success(response) {
+          currentLikeBox.attr('data-exists', 'yes');
+          var likeCount = parseInt(currentLikeBox.find(".like-count").html(), 10); //CONVERTE STRING TO NUMBER
+
+          likeCount++;
+          currentLikeBox.find(".like-count").html(likeCount);
+          currentLikeBox.attr('data-like', response);
+        },
+        error: function error(response) {
+          console.log(response);
+        }
+      });
+    }
+  }, {
+    key: "deleteLike",
+    value: function deleteLike(currentLikeBox) {
+      _jquery.default.ajax({
+        beforeSend: function beforeSend(xhr) {
+          xhr.setRequestHeader('X-WP-Nonce', universityData.nonce);
+        },
+        url: universityData.root_url + '/wp-json/university/v1/manageLike',
+        type: 'DELETE',
+        //QUAL O VERBO QUE VOCE QUER? GET, POST, ETC...
+        data: {
+          'like': currentLikeBox.attr('data-like')
+        },
+        success: function success(response) {
+          currentLikeBox.attr('data-exists', 'no');
+          var likeCount = parseInt(currentLikeBox.find(".like-count").html(), 10); //CONVERTE STRING TO NUMBER
+
+          likeCount--;
+          currentLikeBox.find(".like-count").html(likeCount);
+          currentLikeBox.attr('data-like', '');
+        },
+        error: function error(response) {
+          console.log(response);
+        }
+      });
+    }
+  }]);
+
+  return Like;
+}();
+
+var _default = Like;
 exports.default = _default;
 
 /***/ })

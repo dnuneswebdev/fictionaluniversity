@@ -1,12 +1,19 @@
 <?php
 
 require get_theme_file_path('/inc/search-route.php'); //IMPORTA O SEARCH ROUTE COM O CUSTO API REST
+require get_theme_file_path('/inc/like-route.php');
 
 //rest api custom field
 function university_custom_rest() {
   register_rest_field('post', 'authorName', array( //cria author la no JSON pra aparecer na busca
     'get_callback' => function() {
       return get_the_author();
+    }
+  ));
+
+  register_rest_field('note', 'userNoteCount', array( //cria userNoteCount la no JSON pra aparecer na busca
+    'get_callback' => function() {
+      return count_user_posts(get_current_user_id(), 'note');
     }
   ));
 
@@ -149,6 +156,27 @@ function ourLoginHeaderTitle() {
 }
 
 add_filter('login_headertitle', 'ourLoginHeaderTitle');
+
+//FORCE NOTE POSTS TO BE PRIVATE
+function makeNotePrivate ($data, $postarr) {
+  if($data['post_type'] == 'note') {
+    if(count_user_posts(get_current_user_id(), 'note') > 4 AND !$postarr['ID']) { //LIMITA NOTES ATÉ 5
+      die("You have reached your note limit"); //NAO DEIXA MAIS CRIAR NOTE
+    } 
+
+    $data['post_title'] = sanitize_text_field($data['post_title']); 
+    $data['post_content'] = sanitize_textarea_field($data['post_content']);
+    //FAZ COM QUE OS NOTES FIQUE SEGUROS, NAO DEIXANDO POSTAR HTML CODE
+  }
+
+  if($data['post_type'] == 'note' AND $data['post_status'] != 'trash') {
+    $data['post_status'] = 'private';
+  }
+
+  return $data;
+}
+
+add_filter('wp_insert_post_data', 'makeNotePrivate', 10, 2); //O 2 PERMITE COM QUE A FUNCTION TRABALHE COM DOIS ARGUMENTOS
 
 //GOOGLEMAPS API
 function university_map_key($api) {

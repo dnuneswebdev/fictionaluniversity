@@ -13,6 +13,16 @@
   ?>
 
     <div class="container container--narrow page-section">
+
+    <div class="create-note">
+      <h2 class="headline headline--medium">Create New Note</h2>
+      <input class="new-note-title" placeholder="Title">
+      <textarea class="new-note-body" rows="5" placeholder="Your Note Here...."></textarea>
+      <span class="submit-note">Create Note</span>
+      <span class="note-limit-message">Note limit reached!(5)</span>
+    </div>
+
+
       <ul id="my-notes" class="min-list link-list">
         <?php 
 
@@ -25,14 +35,14 @@
         while($userNotes->have_posts()) {
           $userNotes->the_post(); ?>
           <li data-id="<?php the_ID(); ?>"> <!-- ACHA O ID PRA USAR NO JAVASCRIPT CRUD-->
-            <input readonly class="note-title-field" value="<?php echo esc_attr(get_the_title()) ?>">
+            <input readonly class="note-title-field" value="<?php echo str_replace('Private: ', '', esc_attr(get_the_title())) ?>">
             <span class="edit-note">
             <i class="fa fa-pencil" aria-hidden="true"></i> Edit
             </span>
             <span class="delete-note">
             <i class="fa fa-trash-o" aria-hidden="true"></i> Delete
             </span>
-            <textarea readonly class="note-body-field" rows="5"><?php echo esc_attr(get_the_content()) ?>
+            <textarea readonly class="note-body-field" rows="5"><?php echo esc_textarea(get_the_content()) ?>
             </textarea>
             <span class="update-note btn btn--blue btn--small">
             <i class="fa fa-arrow-right" aria-hidden="true"></i> Save

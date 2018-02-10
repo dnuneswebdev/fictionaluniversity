@@ -9,10 +9,11 @@ class MyNotes {
   }
 
   //EVENTS
-  events() {
-    $(".delete-note").on('click', this.deleteNote.bind(this));
-    $(".edit-note").on('click', this.editNote.bind(this));
-    $(".update-note").on('click', this.updateNote.bind(this));
+  events() { //TEM QUE POR O MY NOTES PRIMEIRO PARA O JS SABER QUE O NOTE FOI CRIADO E CONSEGUIR EDITAR, EXCLUIR SALVAR.
+    $("#my-notes").on('click', '.delete-note', this.deleteNote.bind(this));
+    $("#my-notes").on('click', '.edit-note',this.editNote.bind(this));
+    $("#my-notes").on('click', '.update-note', this.updateNote.bind(this));
+    $(".submit-note").on('click', this.createNote.bind(this));
 
   }
 
@@ -30,10 +31,13 @@ class MyNotes {
         thisNote.slideUp(); //REMOVE ALGUM ITEM NA PAGINA COM UMA ANIMAÇÃO
         console.log('Congrats');
         console.log(response);
-      },
+        if(response.userNoteCount < 5) {
+          $('.note-limit-message').removeClass('active');
+      }
       error: (response) => {
         console.log('Sorry');
         console.log(response);
+        }
       }
     });
   }
@@ -58,6 +62,54 @@ class MyNotes {
         console.log(response);
       },
       error: (response) => {
+        console.log('Sorry');
+        console.log(response);
+      }
+    });
+  }
+
+  createNote(e) { //MANDA UMA REQUISIÇÃO AJAX DE CREATE PARA A REST API DO WP
+    let ourNewPost = {
+      'title': $(".new-note-title").val(),
+      'content': $(".new-note-body").val(),
+      'status': 'publish' //EXIBE COMO PUBLICADO NA PAGINA <FAZ APARECER>, PRA DEIXAR PRIVADO, MELHOR PRATICA É IR LA NO FUNCTIONS E CRIAR UM ADD_FILTER
+    };
+
+    $.ajax({
+      beforeSend: (xhr) => {
+        xhr.setRequestHeader('X-WP-Nonce', universityData.nonce); 
+      }, 
+      url: universityData.root_url + '/wp-json/wp/v2/note/',
+      type: 'POST',
+      data: ourNewPost,
+      success: (response) => {
+        $(".new-note-title, .new-note-body").val(""); //SELECIONA E AO CRIAR NOTE DEIXA EM BRANCO
+        $(`
+        <li data-id="${response.id}" <!-- ACHA O ID PRA USAR NO JAVASCRIPT CRUD-->
+          <input readonly class="note-title-field" value="${response.title.raw}">
+        <span class="edit-note">
+          <i class="fa fa-pencil" aria-hidden="true"></i> Edit
+        </span>
+        <span class="delete-note">
+          <i class="fa fa-trash-o" aria-hidden="true"></i> Delete
+        </span>
+        <textarea readonly class="note-body-field" rows="5">${response.content.raw}</textarea>
+        <span class="update-note btn btn--blue btn--small">
+          <i class="fa fa-arrow-right" aria-hidden="true"></i> Save
+        </span>
+        </li>
+        `) //CRIA UMA LI
+        .prependTo("#my-notes") //LINKA COM A UL #MY-NOTES
+        .hide() // ESCONDE PARA ANIMAÇÂO
+        .slideDown(); // ANIMAÇÂO
+
+        console.log('Congrats');
+        console.log(response);
+      },
+      error: (response) => {
+        if(response.responseText == "You have reached your note limit") {
+          $('.note-limit-message').addClass('active');
+        }
         console.log('Sorry');
         console.log(response);
       }
